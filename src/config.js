@@ -9,7 +9,7 @@
 //   - Windows: Open CMD and type 'ipconfig', look for IPv4 Address
 //   - Mac/Linux: Open Terminal and type 'ifconfig' or 'ip addr'
 // Then uncomment and update the line below:
-export const API_URL = 'http://10.219.31.35:5003/api';
+export const API_URL = 'https://school-app-backend-1w1b.onrender.com/api';
 // Example: export const API_URL = 'http://192.168.1.5:5003/api';
 
 // 3. For iOS Simulator or Web:
