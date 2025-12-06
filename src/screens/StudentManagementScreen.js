@@ -1,0 +1,972 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
+import colors from '../constants/colors';
+import { API_URL } from '../config';
+
+const StudentManagementScreen = ({ navigation }) => {
+    const [students, setStudents] = useState([]);
+    const [classes, setClasses] = useState([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+
+    // Form fields
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
+    const [registerNumber, setRegisterNumber] = useState('');
+    const [dateOfBirth, setDateOfBirth] = useState('');
+    const [gender, setGender] = useState('');
+    const [studentClass, setStudentClass] = useState('');
+    const [profilePicture, setProfilePicture] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterClass, setFilterClass] = useState(null);
+    const [filterGrade, setFilterGrade] = useState(null);
+    const [filterSection, setFilterSection] = useState(null);
+    const [filterGender, setFilterGender] = useState(null);
+
+    // Get unique grades and sections from classes
+    const grades = [...new Set(classes.map(c => c.grade))].sort();
+    const sections = [...new Set(classes.map(c => c.section))].sort();
+
+    // Filter students based on search query and filters
+    const filteredStudents = students.filter(student => {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = (
+            student.name.toLowerCase().includes(query) ||
+            student.email.toLowerCase().includes(query) ||
+            student.registerNumber?.toLowerCase().includes(query) ||
+            student.studentClass?.name.toLowerCase().includes(query) ||
+            student.phone?.includes(query)
+        );
+
+        const matchesClass = !filterClass || student.studentClass?._id === filterClass;
+        const matchesGrade = !filterGrade || student.studentClass?.grade === filterGrade;
+        const matchesSection = !filterSection || student.studentClass?.section === filterSection;
+        const matchesGender = !filterGender || student.gender === filterGender;
+
+        return matchesSearch && matchesClass && matchesGrade && matchesSection && matchesGender;
+    });
+
+    useEffect(() => {
+        fetchStudents();
+        fetchClasses();
+    }, []);
+
+    const fetchStudents = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/students`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setStudents(response.data);
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Failed to fetch students');
+        }
+    };
+
+    const fetchClasses = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/classes`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setClasses(response.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleOpenModal = (student = null) => {
+        if (student) {
+            setEditMode(true);
+            setSelectedStudent(student);
+            setName(student.name);
+            setEmail(student.email);
+            setPhone(student.phone || '');
+            setAddress(student.address || '');
+            setRegisterNumber(student.registerNumber || '');
+            setDateOfBirth(student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : '');
+            setGender(student.gender || '');
+            setStudentClass(student.studentClass?._id || '');
+            setProfilePicture(student.profilePicture ? { uri: `${API_URL}/${student.profilePicture}` } : null);
+            setPassword(''); // Don't show password in edit mode
+        } else {
+            setEditMode(false);
+            setSelectedStudent(null);
+            resetForm();
+        }
+        setModalVisible(true);
+    };
+
+    const resetForm = () => {
+        setName('');
+        setEmail('');
+        setPassword('');
+        setPhone('');
+        setAddress('');
+        setRegisterNumber('');
+        setDateOfBirth('');
+        setGender('');
+        setStudentClass('');
+        setProfilePicture(null);
+    };
+
+    const handleSubmit = async () => {
+        if (!name || !email || (!editMode && !password)) {
+            Alert.alert('Error', 'Please fill all required fields');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('email', email);
+            if (phone) formData.append('phone', phone);
+            if (address) formData.append('address', address);
+            if (registerNumber) formData.append('registerNumber', registerNumber);
+            if (dateOfBirth) formData.append('dateOfBirth', dateOfBirth);
+            if (gender) formData.append('gender', gender);
+            if (studentClass) formData.append('studentClass', studentClass);
+
+            if (profilePicture && !profilePicture.uri.includes('http')) {
+                // It's a newly selected local image
+                let filename = profilePicture.uri.split('/').pop();
+                let match = /\.(\w+)$/.exec(filename);
+                let type = match ? `image/${match[1]}` : `image`;
+                formData.append('profilePicture', { uri: profilePicture.uri, name: filename, type });
+            }
+
+            if (editMode) {
+                // Update student
+                await axios.put(`${API_URL}/students/${selectedStudent._id}`, formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data',
+                    }
+                });
+                Alert.alert('Success', 'Student updated successfully');
+            } else {
+                // Create student
+                formData.append('password', password);
+                await axios.post(`${API_URL}/students`, formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data',
+                    }
+                });
+                Alert.alert('Success', 'Student created successfully');
+            }
+
+            setModalVisible(false);
+            resetForm();
+            fetchStudents();
+        } catch (error) {
+            console.error(error);
+            const message = error.response?.data?.message || 'Operation failed';
+            Alert.alert('Error', message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteStudent = async (id) => {
+        Alert.alert(
+            'Confirm Delete',
+            'Are you sure you want to delete this student?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('token');
+                            await axios.delete(`${API_URL}/students/${id}`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            Alert.alert('Success', 'Student deleted successfully');
+                            fetchStudents();
+                        } catch (error) {
+                            console.error(error);
+                            Alert.alert('Error', 'Failed to delete student');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setProfilePicture(result.assets[0]);
+        }
+    };
+
+    const renderStudentItem = ({ item }) => (
+        <View style={styles.studentCard}>
+            <View style={styles.studentInfo}>
+                <View style={styles.studentHeader}>
+                    <Text style={styles.studentName}>{item.name}</Text>
+                    <Text style={styles.studentRegister}>{item.registerNumber || 'N/A'}</Text>
+                </View>
+                <Text style={styles.studentEmail}>{item.email}</Text>
+                {item.studentClass && (
+                    <Text style={styles.studentClass}>
+                        Class: {item.studentClass.name}
+                    </Text>
+                )}
+                {item.phone && (
+                    <Text style={styles.studentPhone}>📞 {item.phone}</Text>
+                )}
+            </View>
+            <View style={styles.actionButtons}>
+                <TouchableOpacity
+                    style={styles.viewButton}
+                    onPress={() => navigation.navigate('StudentDetails', { studentId: item._id })}
+                >
+                    <Text style={styles.viewButtonText}>View</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => handleOpenModal(item)}
+                >
+                    <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteStudent(item._id)}
+                >
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.title}>Student Management</Text>
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => handleOpenModal()}
+                >
+                    <Text style={styles.addButtonText}>+ Add Student</Text>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchContainer}>
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search by name, email, register number, class..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={() => setSearchQuery('')}
+                    >
+                        <Text style={styles.clearButtonText}>✕</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            <View style={styles.filterSection}>
+                <View style={styles.filterHeader}>
+                    <Text style={styles.filterTitle}>Filters</Text>
+                    {(filterClass || filterGrade || filterSection || filterGender) && (
+                        <TouchableOpacity
+                            onPress={() => {
+                                setFilterClass(null);
+                                setFilterGrade(null);
+                                setFilterSection(null);
+                                setFilterGender(null);
+                            }}
+                        >
+                            <Text style={styles.clearFiltersText}>Clear All</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Class:</Text>
+                        {classes.map((cls) => (
+                            <TouchableOpacity
+                                key={cls._id}
+                                style={[styles.filterChip, filterClass === cls._id && styles.filterChipActive]}
+                                onPress={() => setFilterClass(filterClass === cls._id ? null : cls._id)}
+                            >
+                                <Text style={[styles.filterChipText, filterClass === cls._id && styles.filterChipTextActive]}>
+                                    {cls.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={styles.filterDivider} />
+
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Grade:</Text>
+                        {grades.map((grade) => (
+                            <TouchableOpacity
+                                key={grade}
+                                style={[styles.filterChip, filterGrade === grade && styles.filterChipActive]}
+                                onPress={() => setFilterGrade(filterGrade === grade ? null : grade)}
+                            >
+                                <Text style={[styles.filterChipText, filterGrade === grade && styles.filterChipTextActive]}>
+                                    {grade}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={styles.filterDivider} />
+
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Section:</Text>
+                        {sections.map((section) => (
+                            <TouchableOpacity
+                                key={section}
+                                style={[styles.filterChip, filterSection === section && styles.filterChipActive]}
+                                onPress={() => setFilterSection(filterSection === section ? null : section)}
+                            >
+                                <Text style={[styles.filterChipText, filterSection === section && styles.filterChipTextActive]}>
+                                    {section}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={styles.filterDivider} />
+
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Gender:</Text>
+                        {['Male', 'Female', 'Other'].map((gender) => (
+                            <TouchableOpacity
+                                key={gender}
+                                style={[styles.filterChip, filterGender === gender && styles.filterChipActive]}
+                                onPress={() => setFilterGender(filterGender === gender ? null : gender)}
+                            >
+                                <Text style={[styles.filterChipText, filterGender === gender && styles.filterChipTextActive]}>
+                                    {gender}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </ScrollView>
+            </View>
+
+            <FlatList
+                data={filteredStudents}
+                renderItem={renderStudentItem}
+                keyExtractor={(item) => item._id}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={
+                    <Text style={styles.emptyText}>
+                        {searchQuery ? 'No students match your search' : 'No students found. Add one to get started!'}
+                    </Text>
+                }
+            />
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={styles.modalTitle}>
+                                {editMode ? 'Edit Student' : 'Create New Student'}
+                            </Text>
+
+                            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                                {profilePicture ? (
+                                    <Image source={{ uri: profilePicture.uri }} style={styles.profileImage} />
+                                ) : (
+                                    <View style={styles.placeholderImage}>
+                                        <Text style={styles.placeholderText}>+ Add Photo</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Full Name *"
+                                placeholderTextColor={colors.textSecondary}
+                                value={name}
+                                onChangeText={setName}
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email *"
+                                placeholderTextColor={colors.textSecondary}
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
+
+                            {!editMode && (
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Password *"
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry
+                                />
+                            )}
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Phone Number"
+                                placeholderTextColor={colors.textSecondary}
+                                value={phone}
+                                onChangeText={setPhone}
+                                keyboardType="phone-pad"
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Address"
+                                placeholderTextColor={colors.textSecondary}
+                                value={address}
+                                onChangeText={setAddress}
+                                multiline
+                                numberOfLines={2}
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Register Number (e.g., STU001)"
+                                placeholderTextColor={colors.textSecondary}
+                                value={registerNumber}
+                                onChangeText={setRegisterNumber}
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Date of Birth (YYYY-MM-DD)"
+                                placeholderTextColor={colors.textSecondary}
+                                value={dateOfBirth}
+                                onChangeText={setDateOfBirth}
+                            />
+
+                            <Text style={styles.label}>Gender</Text>
+                            <View style={styles.genderContainer}>
+                                {['Male', 'Female', 'Other'].map((g) => (
+                                    <TouchableOpacity
+                                        key={g}
+                                        style={[
+                                            styles.genderOption,
+                                            gender === g && styles.genderOptionSelected
+                                        ]}
+                                        onPress={() => setGender(g)}
+                                    >
+                                        <Text style={[
+                                            styles.genderOptionText,
+                                            gender === g && styles.genderOptionTextSelected
+                                        ]}>
+                                            {g}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <Text style={styles.label}>Assign Class (Optional)</Text>
+                            <View style={styles.pickerContainer}>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.classOption,
+                                            !studentClass && styles.classOptionSelected
+                                        ]}
+                                        onPress={() => setStudentClass('')}
+                                    >
+                                        <Text style={[
+                                            styles.classOptionText,
+                                            !studentClass && styles.classOptionTextSelected
+                                        ]}>
+                                            No Class
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {classes.map((cls) => (
+                                        <TouchableOpacity
+                                            key={cls._id}
+                                            style={[
+                                                styles.classOption,
+                                                studentClass === cls._id && styles.classOptionSelected
+                                            ]}
+                                            onPress={() => setStudentClass(cls._id)}
+                                        >
+                                            <Text style={[
+                                                styles.classOptionText,
+                                                studentClass === cls._id && styles.classOptionTextSelected
+                                            ]}>
+                                                {cls.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={() => {
+                                        setModalVisible(false);
+                                        resetForm();
+                                    }}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.modalButton, styles.createButton]}
+                                    onPress={handleSubmit}
+                                    disabled={loading}
+                                >
+                                    <Text style={styles.createButtonText}>
+                                        {loading ? 'Saving...' : editMode ? 'Update' : 'Create'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: colors.background,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        paddingBottom: 16,
+        backgroundColor: colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: colors.textPrimary,
+        letterSpacing: -0.5,
+    },
+    addButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 12,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    addButtonText: {
+        color: colors.white,
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingBottom: 16,
+        position: 'relative',
+    },
+    searchInput: {
+        flex: 1,
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        padding: 16,
+        paddingRight: 48,
+        fontSize: 16,
+        color: colors.textPrimary,
+        borderWidth: 1,
+        borderColor: colors.border,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    clearButton: {
+        position: 'absolute',
+        right: 40,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: colors.textLight,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    clearButtonText: {
+        color: colors.white,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    list: {
+        padding: 24,
+        paddingTop: 16,
+    },
+    studentCard: {
+        backgroundColor: colors.white,
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    studentInfo: {
+        marginBottom: 16,
+    },
+    studentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    studentName: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: colors.textPrimary,
+    },
+    studentRegister: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: colors.primary,
+        backgroundColor: colors.primary + '15',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    studentEmail: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: 6,
+        fontWeight: '500',
+    },
+    studentClass: {
+        fontSize: 14,
+        color: colors.primary,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    studentPhone: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 12,
+    },
+    viewButton: {
+        backgroundColor: colors.info,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    viewButtonText: {
+        color: colors.white,
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    editButton: {
+        backgroundColor: colors.secondary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    editButtonText: {
+        color: colors.white,
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    deleteButton: {
+        backgroundColor: colors.white,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.danger,
+    },
+    deleteButtonText: {
+        color: colors.danger,
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    emptyText: {
+        textAlign: 'center',
+        color: colors.textSecondary,
+        fontSize: 16,
+        marginTop: 40,
+        fontWeight: '500',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    modalContent: {
+        backgroundColor: colors.white,
+        borderRadius: 24,
+        padding: 32,
+        width: '90%',
+        maxWidth: 500,
+        maxHeight: '85%',
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 24,
+        elevation: 12,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: colors.textPrimary,
+        marginBottom: 24,
+        textAlign: 'center',
+        letterSpacing: -0.5,
+    },
+    imagePicker: {
+        alignSelf: 'center',
+        marginBottom: 24,
+    },
+    profileImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 4,
+        borderColor: colors.background,
+    },
+    placeholderImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.border,
+        borderStyle: 'dashed',
+    },
+    placeholderText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    filterSection: {
+        backgroundColor: colors.white,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    filterHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        marginBottom: 12,
+    },
+    filterTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    clearFiltersText: {
+        fontSize: 12,
+        color: colors.danger,
+        fontWeight: '600',
+    },
+    input: {
+        backgroundColor: colors.background,
+        borderRadius: 12,
+        padding: 16,
+        fontSize: 16,
+        color: colors.textPrimary,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    filterScroll: {
+        paddingHorizontal: 24,
+    },
+    filterGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 24,
+    },
+    filterLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: colors.textSecondary,
+        marginRight: 8,
+    },
+    filterChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginRight: 8,
+    },
+    filterChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    filterChipText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+    filterChipTextActive: {
+        color: colors.white,
+        fontWeight: '600',
+    },
+    filterDivider: {
+        width: 1,
+        height: 24,
+        backgroundColor: colors.border,
+        marginRight: 24,
+    },
+    label: {
+        fontSize: 14,
+        color: colors.textPrimary,
+        fontWeight: '700',
+        marginBottom: 12,
+        marginTop: 8,
+    },
+    pickerContainer: {
+        marginBottom: 20,
+    },
+    classOption: {
+        backgroundColor: colors.white,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 10,
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    classOptionSelected: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    classOptionText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    classOptionTextSelected: {
+        color: colors.white,
+    },
+    genderContainer: {
+        flexDirection: 'row',
+        marginBottom: 20,
+        gap: 12,
+    },
+    genderOption: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+        backgroundColor: colors.white,
+    },
+    genderOptionSelected: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    genderOptionText: {
+        color: colors.textSecondary,
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    genderOptionTextSelected: {
+        color: colors.white,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 24,
+        gap: 16,
+    },
+    modalButton: {
+        flex: 1,
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    cancelButtonText: {
+        color: colors.textSecondary,
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    createButton: {
+        backgroundColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    createButtonText: {
+        color: colors.white,
+        fontWeight: '700',
+        fontSize: 16,
+    },
+
+
+});
+
+export default StudentManagementScreen;
