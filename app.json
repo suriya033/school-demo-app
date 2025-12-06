@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -30,6 +30,18 @@
       "eas": {
         "projectId": "9a83024e-fac0-4360-a279-cffd02b321f4"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraGradleProperties": {
+              "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=512m"
+            }
+          }
+        }
+      ]
+    ]
   }
 }
