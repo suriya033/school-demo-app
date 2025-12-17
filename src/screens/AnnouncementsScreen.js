@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     title: {
-        fontSize: 20,
+        fontSize: 21,
         fontWeight: 'bold',
         color: colors.textPrimary,
         flex: 1,
