@@ -31,6 +31,7 @@ import ClassAttendanceDetailsScreen from '../screens/ClassAttendanceDetailsScree
 import SubjectAssignmentScreen from '../screens/SubjectAssignmentScreen';
 import StudentHomeworkScreen from '../screens/StudentHomeworkScreen';
 import StudentNoticesScreen from '../screens/StudentNoticesScreen';
+import ColorPaletteScreen from '../screens/ColorPaletteScreen';
 import IntroScreen from '../screens/IntroScreen';
 import colors from '../constants/colors';
 
@@ -42,14 +43,7 @@ const AppNavigator = () => {
             <Stack.Navigator
                 initialRouteName="Intro"
                 screenOptions={{
-                    headerShown: true,
-                    headerStyle: {
-                        backgroundColor: colors.primary,
-                    },
-                    headerTintColor: colors.white,
-                    headerTitleStyle: {
-                        fontWeight: 'bold',
-                    },
+                    headerShown: false,
                     contentStyle: { backgroundColor: colors.background },
                 }}
             >
@@ -206,6 +200,11 @@ const AppNavigator = () => {
                 <Stack.Screen
                     name="StudentNotices"
                     component={StudentNoticesScreen}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="ColorPalette"
+                    component={ColorPaletteScreen}
                     options={{ headerShown: false }}
                 />
             </Stack.Navigator>

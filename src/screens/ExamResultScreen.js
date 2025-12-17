@@ -53,11 +53,12 @@ const ExamResultScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>←</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>Exam Results</Text>
-                <View style={{ width: 40 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Exam Results</Text>
+                </View>
             </View>
 
             {loading ? (
@@ -218,8 +219,9 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     backButton: {
-        fontSize: 28,
+        fontSize: 24,
         color: colors.primary,
+        fontWeight: '600',
     },
     title: {
         fontSize: 24,

@@ -51,7 +51,12 @@ const StudentProfileScreen = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>My Profile</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                            <Text style={styles.backButton}>←</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.title}>My Profile</Text>
+                    </View>
                 </View>
 
                 <View style={styles.profileCard}>
@@ -145,6 +150,13 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backButton: {
+        fontSize: 24,
+        color: colors.primary,
+        fontWeight: '600',
     },
     title: {
         fontSize: 28,

@@ -222,7 +222,12 @@ const SubjectManagementScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Subject Management</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Subject Management</Text>
+                </View>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => setModalVisible(true)}
@@ -443,6 +448,11 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: colors.textPrimary,
         letterSpacing: -0.5,
+    },
+    backButton: {
+        fontSize: 24,
+        color: colors.primary,
+        fontWeight: '600',
     },
     addButton: {
         backgroundColor: colors.primary,

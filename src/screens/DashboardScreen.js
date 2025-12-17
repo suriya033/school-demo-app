@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import colors from '../constants/colors';
 import { API_URL } from '../config';
+import { useResponsive } from '../hooks/useResponsive';
 
 const DashboardScreen = ({ navigation }) => {
+    const responsive = useResponsive();
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({
         totalClasses: 0,
@@ -198,26 +200,26 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     header: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         paddingTop: 4,
-        paddingBottom: 20,
+        paddingBottom: 16,
         backgroundColor: colors.primary,
     },
     title: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
         color: colors.white,
         marginBottom: 4,
         letterSpacing: -1,
     },
     welcome: {
-        fontSize: 16,
+        fontSize: 14,
         color: colors.white,
         fontWeight: '600',
         opacity: 0.95,
     },
     role: {
-        fontSize: 13,
+        fontSize: 12,
         color: colors.white,
         marginTop: 2,
         opacity: 0.85,
@@ -227,21 +229,22 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: 24,
-        paddingTop: 20,
+        padding: 16,
+        paddingTop: 16,
     },
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 28,
-        marginTop: -40,
+        marginBottom: 20,
+        marginTop: -32,
+        gap: 8,
     },
     statCard: {
         backgroundColor: colors.white,
-        borderRadius: 20,
-        padding: 18,
-        paddingTop: 35,
-        width: '31%',
+        borderRadius: 16,
+        padding: 12,
+        paddingTop: 24,
+        flex: 1,
         alignItems: 'center',
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 8 },
@@ -251,18 +254,18 @@ const styles = StyleSheet.create({
         borderWidth: 0,
     },
     statIcon: {
-        fontSize: 32,
-        marginBottom: 10,
+        fontSize: 28,
+        marginBottom: 8,
     },
     statValue: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
         color: colors.primary,
         marginBottom: 4,
         letterSpacing: -0.5,
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 10,
         color: colors.textSecondary,
         textAlign: 'center',
         fontWeight: '600',
@@ -270,23 +273,24 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     subtitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '800',
         color: colors.textPrimary,
-        marginBottom: 20,
+        marginBottom: 16,
         letterSpacing: -0.5,
     },
     menuGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+        gap: 12,
     },
     menuCard: {
         backgroundColor: colors.white,
-        borderRadius: 24,
-        padding: 24,
+        borderRadius: 20,
+        padding: 16,
         width: '48%',
-        marginBottom: 16,
+        marginBottom: 0,
         alignItems: 'center',
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 6 },
@@ -295,34 +299,34 @@ const styles = StyleSheet.create({
         elevation: 5,
         borderWidth: 1,
         borderColor: colors.border,
-        minHeight: 140,
+        minHeight: 130,
         justifyContent: 'center',
     },
     menuIcon: {
-        fontSize: 42,
-        marginBottom: 14,
+        fontSize: 36,
+        marginBottom: 10,
     },
     menuTitle: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '800',
         color: colors.textPrimary,
-        marginBottom: 6,
+        marginBottom: 4,
         textAlign: 'center',
         letterSpacing: -0.3,
     },
     menuDescription: {
-        fontSize: 12,
+        fontSize: 11,
         color: colors.textSecondary,
         textAlign: 'center',
-        lineHeight: 16,
+        lineHeight: 14,
         fontWeight: '500',
     },
     logoutButton: {
         backgroundColor: colors.white,
-        padding: 18,
-        borderRadius: 16,
+        padding: 16,
+        borderRadius: 14,
         alignItems: 'center',
-        marginTop: 32,
+        marginTop: 24,
         marginBottom: 16,
         borderWidth: 2,
         borderColor: colors.danger,
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
     logoutText: {
         color: colors.danger,
         fontWeight: '800',
-        fontSize: 16,
+        fontSize: 15,
         letterSpacing: 0.5,
     },
 });

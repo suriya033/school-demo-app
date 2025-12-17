@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
-import { Image } from 'react-native';
 import colors from '../constants/colors';
 import { API_URL } from '../config';
 
@@ -257,7 +256,12 @@ const StaffManagementScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>staff Management</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>staff Management</Text>
+                </View>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => handleOpenModal()}
@@ -377,7 +381,7 @@ const StaffManagementScreen = ({ navigation }) => {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Date of Birth (YYYY-MM-DD)"
+                                placeholder="Date of Birth (DD-MM-YYYY)"
                                 placeholderTextColor={colors.textSecondary}
                                 value={dateOfBirth}
                                 onChangeText={setDateOfBirth}
@@ -454,6 +458,11 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: colors.textPrimary,
         letterSpacing: -0.5,
+    },
+    backButton: {
+        fontSize: 24,
+        color: colors.primary,
+        fontWeight: '600',
     },
     addButton: {
         backgroundColor: colors.primary,

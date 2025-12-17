@@ -409,12 +409,14 @@ const ClassMessagesScreen = ({ navigation }) => {
         >
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>←</Text>
-                    </TouchableOpacity>
-                    <View style={styles.headerTitleContainer}>
-                        <Text style={styles.title}>Class Messages</Text>
-                        <Text style={styles.subtitle}>{user?.role === 'staff' ? 'Staff Room' : 'Class Group'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                            <Text style={styles.backButtonText}>←</Text>
+                        </TouchableOpacity>
+                        <View style={styles.headerTitleContainer}>
+                            <Text style={styles.title}>Class Messages</Text>
+                            <Text style={styles.subtitle}>{user?.role === 'staff' ? 'Staff Room' : 'Class Group'}</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -561,13 +563,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
     },
-    backButton: {
-        marginRight: 16,
-        padding: 4,
-    },
     backButtonText: {
         fontSize: 24,
         color: colors.primary,
+        fontWeight: '600',
     },
     headerTitleContainer: {
         flex: 1,
@@ -599,14 +598,57 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 20,
     },
     ownMessage: {
+        alignSelf: 'flex-end',
+        backgroundColor: colors.primary,
+        borderBottomRightRadius: 4,
+    },
+    otherMessage: {
+        alignSelf: 'flex-start',
+        backgroundColor: colors.white,
+        borderBottomLeftRadius: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    messageText: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        lineHeight: 22,
+    },
+    ownMessageText: {
+        color: colors.white,
+    },
+    messageTime: {
+        fontSize: 10,
+        color: colors.textSecondary,
+        alignSelf: 'flex-end',
+        marginTop: 4,
+    },
+    ownMessageTime: {
+        color: 'rgba(255, 255, 255, 0.7)',
+    },
+    senderName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: colors.primary,
+        marginBottom: 4,
+        marginLeft: 4,
     },
     inputContainer: {
         flexDirection: 'row',
-        padding: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: colors.white,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
+        borderTopColor: colors.borderLight || '#e0e0e0',
         alignItems: 'flex-end',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 5,
     },
     inputActions: {
         flexDirection: 'row',
@@ -619,10 +661,13 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        marginRight: 8,
+        paddingTop: 10,
+        marginRight: 12,
         maxHeight: 100,
         fontSize: 16,
         color: colors.textPrimary,
+        borderWidth: 1,
+        borderColor: 'transparent',
     },
     sendButton: {
         backgroundColor: colors.primary,
@@ -632,6 +677,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 2,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 4,
     },
     sendButtonDisabled: {
         backgroundColor: colors.gray,

@@ -195,7 +195,12 @@ const HomeworkScreen = ({ navigation }) => {
             {viewMode === 'classes' ? (
                 <>
                     <View style={styles.header}>
-                        <Text style={styles.title}>My Classes</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                                <Text style={styles.backButtonText}>←</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.title}>My Classes</Text>
+                        </View>
                     </View>
                     <FlatList
                         data={classes}
@@ -267,7 +272,7 @@ const HomeworkScreen = ({ navigation }) => {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Due Date (YYYY-MM-DD)"
+                                placeholder="Due Date (DD-MM-YYYY)"
                                 value={dueDate}
                                 onChangeText={setDueDate}
                             />

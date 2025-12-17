@@ -449,14 +449,7 @@ const StaffDashboardScreen = ({ navigation }) => {
                         <Text style={styles.menuDescription}>Teaching schedule</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.menuCard}
-                        onPress={() => navigation.navigate('SubjectManagement')}
-                    >
-                        <Text style={styles.menuIcon}>📚</Text>
-                        <Text style={styles.menuTitle}>Subjects</Text>
-                        <Text style={styles.menuDescription}>Manage subjects</Text>
-                    </TouchableOpacity>
+
 
                     <TouchableOpacity
                         style={styles.menuCard}
@@ -524,7 +517,7 @@ const StaffDashboardScreen = ({ navigation }) => {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Due Date (YYYY-MM-DD)"
+                                placeholder="Due Date (DD-MM-YYYY)"
                                 placeholderTextColor={colors.textSecondary}
                                 value={homeworkDueDate}
                                 onChangeText={setHomeworkDueDate}

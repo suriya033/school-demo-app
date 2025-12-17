@@ -215,10 +215,12 @@ const SubjectStaffManagementScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← Back</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>Subject Staff Assignment</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Subject Staff Assignment</Text>
+                </View>
             </View>
 
             <ScrollView style={styles.content}>
@@ -304,9 +306,8 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     backButton: {
-        fontSize: 16,
+        fontSize: 24,
         color: colors.primary,
-        marginRight: 16,
         fontWeight: '600',
     },
     title: {

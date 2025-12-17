@@ -191,7 +191,12 @@ const AssignmentManagementScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Subject & Class Assignments</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Subject & Class Assignments</Text>
+                </View>
             </View>
 
             <FlatList
@@ -305,6 +310,11 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
         color: colors.primary,
+    },
+    backButton: {
+        fontSize: 24,
+        color: colors.primary,
+        fontWeight: '600',
     },
     list: {
         padding: 20,

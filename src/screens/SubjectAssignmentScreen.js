@@ -162,16 +162,17 @@ const SubjectAssignmentScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>←</Text>
-                </TouchableOpacity>
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={styles.title}>Subject Assignment</Text>
-                    {classDetails && (
-                        <Text style={styles.subtitle}>{classDetails.name}</Text>
-                    )}
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <View>
+                        <Text style={styles.title}>Subject Assignment</Text>
+                        {classDetails && (
+                            <Text style={styles.subtitle}>{classDetails.name}</Text>
+                        )}
+                    </View>
                 </View>
-                <View style={{ width: 40 }} />
             </View>
 
             <FlatList
@@ -258,8 +259,9 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     backButton: {
-        fontSize: 28,
+        fontSize: 24,
         color: colors.primary,
+        fontWeight: '600',
     },
     title: {
         fontSize: 20,

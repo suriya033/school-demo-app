@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
-import { Image } from 'react-native';
 import colors from '../constants/colors';
 import { API_URL } from '../config';
 
@@ -264,7 +263,12 @@ const StudentManagementScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Student Management</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Student Management</Text>
+                </View>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => handleOpenModal()}
@@ -470,7 +474,7 @@ const StudentManagementScreen = ({ navigation }) => {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Date of Birth (YYYY-MM-DD)"
+                                placeholder="Date of Birth (DD-MM-YYYY)"
                                 placeholderTextColor={colors.textSecondary}
                                 value={dateOfBirth}
                                 onChangeText={setDateOfBirth}
@@ -572,23 +576,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 24,
-        paddingBottom: 16,
+        padding: 16,
+        paddingBottom: 12,
         backgroundColor: colors.white,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
     title: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: '800',
         color: colors.textPrimary,
         letterSpacing: -0.5,
     },
+    backButton: {
+        fontSize: 24,
+        color: colors.primary,
+        fontWeight: '600',
+    },
     addButton: {
         backgroundColor: colors.primary,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 10,
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
@@ -598,22 +607,22 @@ const styles = StyleSheet.create({
     addButtonText: {
         color: colors.white,
         fontWeight: '700',
-        fontSize: 14,
+        fontSize: 13,
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingBottom: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 12,
         position: 'relative',
     },
     searchInput: {
         flex: 1,
         backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 16,
-        paddingRight: 48,
-        fontSize: 16,
+        borderRadius: 10,
+        padding: 14,
+        paddingRight: 44,
+        fontSize: 15,
         color: colors.textPrimary,
         borderWidth: 1,
         borderColor: colors.border,
@@ -625,28 +634,28 @@ const styles = StyleSheet.create({
     },
     clearButton: {
         position: 'absolute',
-        right: 40,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        right: 32,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         backgroundColor: colors.textLight,
         justifyContent: 'center',
         alignItems: 'center',
     },
     clearButtonText: {
         color: colors.white,
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '700',
     },
     list: {
-        padding: 24,
-        paddingTop: 16,
+        padding: 16,
+        paddingTop: 12,
     },
     studentCard: {
         backgroundColor: colors.white,
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 12,
         shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
@@ -656,7 +665,7 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
     },
     studentInfo: {
-        marginBottom: 16,
+        marginBottom: 14,
     },
     studentHeader: {
         flexDirection: 'row',
@@ -698,34 +707,35 @@ const styles = StyleSheet.create({
     actionButtons: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
-        gap: 12,
+        gap: 8,
+        flexWrap: 'wrap',
     },
     viewButton: {
         backgroundColor: colors.info,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
         borderRadius: 8,
     },
     viewButtonText: {
         color: colors.white,
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 11,
     },
     editButton: {
         backgroundColor: colors.secondary,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
         borderRadius: 8,
     },
     editButtonText: {
         color: colors.white,
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 11,
     },
     deleteButton: {
         backgroundColor: colors.white,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.danger,
@@ -733,7 +743,7 @@ const styles = StyleSheet.create({
     deleteButtonText: {
         color: colors.danger,
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 11,
     },
     emptyText: {
         textAlign: 'center',
@@ -750,9 +760,9 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         backgroundColor: colors.white,
-        borderRadius: 24,
-        padding: 32,
-        width: '90%',
+        borderRadius: 20,
+        padding: 24,
+        width: '92%',
         maxWidth: 500,
         maxHeight: '85%',
         shadowColor: colors.shadow,
@@ -762,10 +772,10 @@ const styles = StyleSheet.create({
         elevation: 12,
     },
     modalTitle: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: '800',
         color: colors.textPrimary,
-        marginBottom: 24,
+        marginBottom: 20,
         textAlign: 'center',
         letterSpacing: -0.5,
     },

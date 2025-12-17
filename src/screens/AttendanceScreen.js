@@ -229,7 +229,12 @@ const AttendanceScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Mark Attendance</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButton}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Mark Attendance</Text>
+                </View>
                 <TouchableOpacity onPress={() => setShowDatePicker(true)}>
                     <Text style={styles.date}>{selectedDate.toLocaleDateString()}</Text>
                 </TouchableOpacity>
@@ -319,6 +324,11 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
         color: colors.primary,
+    },
+    backButton: {
+        fontSize: 24,
+        color: colors.primary,
+        fontWeight: '600',
     },
     date: {
         fontSize: 14,

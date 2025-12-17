@@ -186,8 +186,8 @@ const AdminAttendanceDashboard = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← Back</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                    <Text style={styles.backButton}>←</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>Attendance Dashboard</Text>
             </View>
@@ -359,9 +359,8 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     backButton: {
-        fontSize: 16,
+        fontSize: 24,
         color: colors.primary,
-        marginRight: 16,
         fontWeight: '600',
     },
     title: {

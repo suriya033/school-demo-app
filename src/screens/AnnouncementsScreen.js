@@ -177,10 +177,12 @@ const AnnouncementsScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>Announcements</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButtonText}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Announcements</Text>
+                </View>
                 {(user?.role === 'Admin' || user?.role === 'staff') && (
                     <TouchableOpacity
                         onPress={() => navigation.navigate('CreateAnnouncement')}
@@ -218,12 +220,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: {
-        marginRight: 12,
-    },
     backButtonText: {
-        fontSize: 28,
+        fontSize: 24,
         color: colors.primary,
+        fontWeight: '600',
     },
     title: {
         fontSize: 20,
@@ -232,9 +232,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     addButton: {
+        right:40,
         width: 40,
         height: 40,
-        borderRadius: 20,
+        borderRadius: 1,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',

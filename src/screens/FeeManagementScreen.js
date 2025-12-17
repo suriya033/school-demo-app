@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Alert, ScrollView } from 'react-native';
+﻿import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TouchableOpacity,
+    TextInput,
+    Modal,
+    Alert,
+    ScrollView,
+    ActivityIndicator
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -8,74 +19,76 @@ import { API_URL } from '../config';
 
 const FeeManagementScreen = ({ navigation }) => {
     const [fees, setFees] = useState([]);
-    const [students, setStudents] = useState([]);
-    const [classes, setClasses] = useState([]);
+    const [searchedStudents, setSearchedStudents] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [title, setTitle] = useState('');
     const [amount, setAmount] = useState('');
     const [dueDate, setDueDate] = useState('');
-    const [selectedStudent, setSelectedStudent] = useState('');
-    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [studentSearchQuery, setStudentSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [editMode, setEditMode] = useState(false);
     const [selectedFee, setSelectedFee] = useState(null);
+    const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
-    // Filter fees based on search query
     const filteredFees = fees.filter(fee => {
         const query = searchQuery.toLowerCase();
         return (
             fee.title.toLowerCase().includes(query) ||
-            fee.student?.name.toLowerCase().includes(query) ||
+            fee.student?.name?.toLowerCase().includes(query) ||
+            fee.student?.registerNumber?.toLowerCase().includes(query) ||
             fee.amount.toString().includes(query)
         );
     });
 
     useEffect(() => {
         fetchFees();
-        fetchStudents();
-        fetchClasses();
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (studentSearchQuery.length > 0) {
+                searchStudents(studentSearchQuery);
+            } else {
+                setSearchedStudents([]);
+                setShowStudentDropdown(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [studentSearchQuery]);
 
     const fetchFees = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/fees`, {
+            const res = await axios.get(`${API_URL}/fees`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setFees(response.data);
-        } catch (error) {
-            console.error(error);
+            setFees(res.data);
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Error', 'Failed to fetch fees');
         }
     };
 
-    const fetchStudents = async () => {
+    const searchStudents = async query => {
         try {
             const token = await AsyncStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/students`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setStudents(response.data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const fetchClasses = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/classes`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setClasses(response.data);
-        } catch (error) {
-            console.error(error);
+            const res = await axios.get(
+                `${API_URL}/students?registerNumber=${query}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setSearchedStudents(res.data);
+            setShowStudentDropdown(res.data.length > 0);
+        } catch (err) {
+            console.error(err);
         }
     };
 
     const handleCreateFee = async () => {
-        if (!title || !amount || !selectedStudent || !selectedClass || !dueDate) {
-            Alert.alert('Error', 'Please fill all fields');
+        if (!title || !amount || !selectedStudent || !dueDate) {
+            Alert.alert('Error', 'Please fill all fields and select a student');
             return;
         }
 
@@ -84,86 +97,84 @@ const FeeManagementScreen = ({ navigation }) => {
             const token = await AsyncStorage.getItem('token');
 
             if (editMode && selectedFee) {
-                // Update existing fee
-                await axios.put(`${API_URL}/fees/${selectedFee._id}`, {
-                    student: selectedStudent,
-                    classId: selectedClass,
-                    title,
-                    amount: parseFloat(amount),
-                    dueDate: new Date(dueDate),
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axios.put(
+                    `${API_URL}/fees/${selectedFee._id}`,
+                    {
+                        student: selectedStudent._id,
+                        title,
+                        amount: parseFloat(amount),
+                        dueDate: new Date(dueDate),
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
                 Alert.alert('Success', 'Fee updated successfully');
             } else {
-                // Create new fee
-                await axios.post(`${API_URL}/fees`, {
-                    student: selectedStudent,
-                    classId: selectedClass,
-                    title,
-                    amount: parseFloat(amount),
-                    dueDate: new Date(dueDate),
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axios.post(
+                    `${API_URL}/fees`,
+                    {
+                        student: selectedStudent._id,
+                        classId: selectedStudent.studentClass?._id,
+                        title,
+                        amount: parseFloat(amount),
+                        dueDate: new Date(dueDate),
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
                 Alert.alert('Success', 'Fee created successfully');
             }
 
             setModalVisible(false);
             resetForm();
             fetchFees();
-        } catch (error) {
-            console.error(error);
-            Alert.alert('Error', editMode ? 'Failed to update fee' : 'Failed to create fee');
+        } catch (err) {
+            console.error(err);
+            Alert.alert('Error', 'Operation failed');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleMarkPaid = async (feeId) => {
+    const handleMarkPaid = async id => {
         try {
             const token = await AsyncStorage.getItem('token');
-            await axios.put(`${API_URL}/fees/${feeId}/payment`, {
-                status: 'Paid',
-                paymentMethod: 'Cash',
-                transactionId: `TXN${Date.now()}`,
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
+            await axios.put(
+                `${API_URL}/fees/${id}/payment`,
+                {
+                    status: 'Paid',
+                    paymentMethod: 'Cash',
+                    transactionId: `TXN${Date.now()}`
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             Alert.alert('Success', 'Fee marked as paid');
             fetchFees();
-        } catch (error) {
-            console.error(error);
+        } catch (err) {
+            console.error(err);
             Alert.alert('Error', 'Failed to update fee');
         }
     };
 
-    const handleDeleteFee = async (feeId) => {
-        Alert.alert(
-            'Confirm Delete',
-            'Are you sure you want to delete this fee?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const token = await AsyncStorage.getItem('token');
-                            await axios.delete(`${API_URL}/fees/${feeId}`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            });
-                            Alert.alert('Success', 'Fee deleted successfully');
-                            fetchFees();
-                        } catch (error) {
-                            console.error(error);
-                            Alert.alert('Error', 'Failed to delete fee');
-                        }
+    const handleDeleteFee = id => {
+        Alert.alert('Confirm Delete', 'Are you sure you want to delete this fee?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        const token = await AsyncStorage.getItem('token');
+                        await axios.delete(`${API_URL}/fees/${id}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        Alert.alert('Success', 'Fee deleted successfully');
+                        fetchFees();
+                    } catch (err) {
+                        console.error(err);
+                        Alert.alert('Error', 'Failed to delete fee');
                     }
                 }
-            ]
-        );
+            }
+        ]);
     };
 
     const handleEditFee = (fee) => {
@@ -172,30 +183,39 @@ const FeeManagementScreen = ({ navigation }) => {
         setTitle(fee.title);
         setAmount(fee.amount.toString());
         setDueDate(new Date(fee.dueDate).toISOString().split('T')[0]);
-        setSelectedStudent(fee.student._id);
-        setSelectedClass(fee.classId._id || fee.classId);
+        setSelectedStudent(fee.student);
+        setStudentSearchQuery(fee.student?.registerNumber || fee.student?.name || '');
         setModalVisible(true);
+    };
+
+    const handleSelectStudent = (student) => {
+        setSelectedStudent(student);
+        setStudentSearchQuery(student.registerNumber || student.name);
+        setShowStudentDropdown(false);
     };
 
     const resetForm = () => {
         setTitle('');
         setAmount('');
         setDueDate('');
-        setSelectedStudent('');
-        setSelectedClass('');
+        setSelectedStudent(null);
+        setStudentSearchQuery('');
+        setSearchedStudents([]);
+        setShowStudentDropdown(false);
         setEditMode(false);
         setSelectedFee(null);
     };
 
     const renderFeeItem = ({ item }) => (
         <View style={styles.feeCard}>
-            <View style={styles.feeInfo}>
-                <Text style={styles.feeTitle}>{item.title}</Text>
-                <Text style={styles.studentName}>{item.student?.name}</Text>
-                <Text style={styles.feeAmount}>₹{item.amount}</Text>
-                <Text style={styles.dueDate}>
-                    Due: {new Date(item.dueDate).toLocaleDateString()}
-                </Text>
+            <View style={styles.feeHeader}>
+                <View style={styles.feeInfo}>
+                    <Text style={styles.feeTitle}>{item.title}</Text>
+                    <Text style={styles.studentName}>{item.student?.name}</Text>
+                    {item.student?.registerNumber && (
+                        <Text style={styles.registerNumber}>Reg: {item.student.registerNumber}</Text>
+                    )}
+                </View>
                 <View style={[
                     styles.statusBadge,
                     item.status === 'Paid' ? styles.paidBadge : styles.pendingBadge
@@ -203,6 +223,14 @@ const FeeManagementScreen = ({ navigation }) => {
                     <Text style={styles.statusText}>{item.status}</Text>
                 </View>
             </View>
+
+            <View style={styles.feeDetails}>
+                <Text style={styles.feeAmount}>₹{item.amount}</Text>
+                <Text style={styles.dueDate}>
+                    Due: {new Date(item.dueDate).toLocaleDateString()}
+                </Text>
+            </View>
+
             <View style={styles.actionButtons}>
                 {item.status !== 'Paid' && (
                     <TouchableOpacity
@@ -230,120 +258,161 @@ const FeeManagementScreen = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Fee Management</Text>
+                <View style={styles.headerLeft}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <Text style={styles.backButtonText}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Fee Management</Text>
+                </View>
                 <TouchableOpacity
                     style={styles.addButton}
-                    onPress={() => setModalVisible(true)}
+                    onPress={() => {
+                        resetForm();
+                        setModalVisible(true);
+                    }}
                 >
                     <Text style={styles.addButtonText}>+ Add Fee</Text>
                 </TouchableOpacity>
             </View>
 
+            {/* Search Bar */}
             <View style={styles.searchContainer}>
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Search by title, student, or amount..."
+                    placeholder="Search by title, student, register number..."
                     placeholderTextColor={colors.textSecondary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                 />
                 {searchQuery.length > 0 && (
                     <TouchableOpacity
-                        style={styles.clearButton}
+                        style={styles.clearSearchButton}
                         onPress={() => setSearchQuery('')}
                     >
-                        <Text style={styles.clearButtonText}>✕</Text>
+                        <Text style={styles.clearSearchText}>✕</Text>
                     </TouchableOpacity>
                 )}
             </View>
 
+            {/* Fee List */}
             <FlatList
                 data={filteredFees}
                 renderItem={renderFeeItem}
-                keyExtractor={(item) => item._id}
-                contentContainerStyle={styles.list}
+                keyExtractor={item => item._id}
+                contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
-                    <Text style={styles.emptyText}>
-                        {searchQuery ? 'No fees match your search' : 'No fees found'}
-                    </Text>
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>
+                            {searchQuery ? 'No fees match your search' : 'No fees found'}
+                        </Text>
+                    </View>
                 }
             />
 
+            {/* Create/Edit Fee Modal */}
             <Modal
-                animationType="slide"
-                transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                transparent
+                animationType="slide"
+                onRequestClose={() => {
+                    setModalVisible(false);
+                    resetForm();
+                }}
             >
-                <View style={styles.modalContainer}>
+                <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <ScrollView>
-                            <Text style={styles.modalTitle}>{editMode ? 'Edit Fee' : 'Create Fee'}</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={styles.modalTitle}>
+                                {editMode ? 'Edit Fee' : 'Create New Fee'}
+                            </Text>
 
+                            {/* Title Input */}
+                            <Text style={styles.label}>Fee Title</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Title (e.g., Tuition Fee - Term 1)"
+                                placeholder="e.g., Tuition Fee - Term 1"
+                                placeholderTextColor={colors.textSecondary}
                                 value={title}
                                 onChangeText={setTitle}
                             />
 
+                            {/* Amount Input */}
+                            <Text style={styles.label}>Amount (₹)</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Amount"
+                                placeholder="Enter amount"
+                                placeholderTextColor={colors.textSecondary}
                                 value={amount}
                                 onChangeText={setAmount}
                                 keyboardType="numeric"
                             />
 
+                            {/* Due Date Input */}
+                            <Text style={styles.label}>Due Date</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Due Date (YYYY-MM-DD)"
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor={colors.textSecondary}
                                 value={dueDate}
                                 onChangeText={setDueDate}
                             />
 
-                            <Text style={styles.label}>Select Student</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picker}>
-                                {students.map((student) => (
-                                    <TouchableOpacity
-                                        key={student._id}
-                                        style={[
-                                            styles.pickerOption,
-                                            selectedStudent === student._id && styles.pickerOptionSelected
-                                        ]}
-                                        onPress={() => setSelectedStudent(student._id)}
-                                    >
-                                        <Text style={[
-                                            styles.pickerOptionText,
-                                            selectedStudent === student._id && styles.pickerOptionTextSelected
-                                        ]}>
-                                            {student.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
+                            {/* Student Search */}
+                            <View style={styles.studentSearchContainer}>
+                                <Text style={styles.label}>Student</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Search by register number or name..."
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={studentSearchQuery}
+                                    onChangeText={setStudentSearchQuery}
+                                    editable={!editMode}
+                                />
 
-                            <Text style={styles.label}>Select Class</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picker}>
-                                {classes.map((cls) => (
-                                    <TouchableOpacity
-                                        key={cls._id}
-                                        style={[
-                                            styles.pickerOption,
-                                            selectedClass === cls._id && styles.pickerOptionSelected
-                                        ]}
-                                        onPress={() => setSelectedClass(cls._id)}
-                                    >
-                                        <Text style={[
-                                            styles.pickerOptionText,
-                                            selectedClass === cls._id && styles.pickerOptionTextSelected
-                                        ]}>
-                                            {cls.name}
+                                {selectedStudent && (
+                                    <View style={styles.selectedStudentBadge}>
+                                        <Text style={styles.selectedStudentText}>
+                                            {selectedStudent.name} ({selectedStudent.registerNumber})
                                         </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
+                                        {!editMode && (
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                    setSelectedStudent(null);
+                                                    setStudentSearchQuery('');
+                                                }}
+                                            >
+                                                <Text style={styles.clearStudentText}>✕</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                )}
+
+                                {showStudentDropdown && searchedStudents.length > 0 && (
+                                    <ScrollView style={styles.studentDropdown} nestedScrollEnabled>
+                                        {searchedStudents.map((student) => (
+                                            <TouchableOpacity
+                                                key={student._id}
+                                                style={styles.studentDropdownItem}
+                                                onPress={() => handleSelectStudent(student)}
+                                            >
+                                                <Text style={styles.studentDropdownName}>
+                                                    {student.name}
+                                                </Text>
+                                                <Text style={styles.studentDropdownReg}>
+                                                    Reg: {student.registerNumber}
+                                                </Text>
+                                                {student.studentClass && (
+                                                    <Text style={styles.studentDropdownClass}>
+                                                        Class: {student.studentClass.name}
+                                                    </Text>
+                                                )}
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                )}
+                            </View>
 
                             <View style={styles.modalButtons}>
                                 <TouchableOpacity
@@ -361,9 +430,13 @@ const FeeManagementScreen = ({ navigation }) => {
                                     onPress={handleCreateFee}
                                     disabled={loading}
                                 >
-                                    <Text style={styles.createButtonText}>
-                                        {loading ? (editMode ? 'Updating...' : 'Creating...') : (editMode ? 'Update' : 'Create')}
-                                    </Text>
+                                    {loading ? (
+                                        <ActivityIndicator color={colors.white} />
+                                    ) : (
+                                        <Text style={styles.createButtonText}>
+                                            {editMode ? 'Update' : 'Create'}
+                                        </Text>
+                                    )}
                                 </TouchableOpacity>
                             </View>
                         </ScrollView>
@@ -385,11 +458,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         paddingBottom: 10,
+        backgroundColor: colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
     },
-    title: {
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backButton: {
+        marginRight: 12,
+        padding: 4,
+    },
+    backButtonText: {
         fontSize: 28,
-        fontWeight: 'bold',
         color: colors.primary,
+        fontWeight: '600',
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
     },
     addButton: {
         backgroundColor: colors.primary,
@@ -402,7 +491,39 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
-    list: {
+    searchContainer: {
+        padding: 20,
+        paddingBottom: 10,
+        backgroundColor: colors.white,
+        position: 'relative',
+    },
+    searchInput: {
+        backgroundColor: colors.background,
+        borderRadius: 12,
+        padding: 14,
+        paddingRight: 48,
+        fontSize: 16,
+        color: colors.textPrimary,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    clearSearchButton: {
+        position: 'absolute',
+        right: 36,
+        top: 34,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: colors.textSecondary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    clearSearchText: {
+        color: colors.white,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    listContent: {
         padding: 20,
         paddingTop: 10,
     },
@@ -411,17 +532,23 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
-        shadowColor: colors.black,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
     },
-    feeInfo: {
+    feeHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         marginBottom: 12,
     },
+    feeInfo: {
+        flex: 1,
+    },
     feeTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         color: colors.textPrimary,
         marginBottom: 4,
@@ -429,23 +556,15 @@ const styles = StyleSheet.create({
     studentName: {
         fontSize: 14,
         color: colors.textSecondary,
-        marginBottom: 4,
+        marginBottom: 2,
     },
-    feeAmount: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.primary,
-        marginBottom: 4,
-    },
-    dueDate: {
+    registerNumber: {
         fontSize: 12,
         color: colors.textSecondary,
-        marginBottom: 8,
     },
     statusBadge: {
-        alignSelf: 'flex-start',
         paddingHorizontal: 12,
-        paddingVertical: 4,
+        paddingVertical: 6,
         borderRadius: 12,
     },
     paidBadge: {
@@ -459,38 +578,49 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
-    payButton: {
-        backgroundColor: colors.success,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        marginRight: 8,
+    feeDetails: {
+        marginBottom: 12,
     },
-    payButtonText: {
-        color: colors.white,
-        fontWeight: '700',
-        fontSize: 12,
+    feeAmount: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: colors.primary,
+        marginBottom: 4,
+    },
+    dueDate: {
+        fontSize: 13,
+        color: colors.textSecondary,
     },
     actionButtons: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
-        marginTop: 12,
         gap: 8,
+    },
+    payButton: {
+        backgroundColor: colors.success,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    payButtonText: {
+        color: colors.white,
+        fontWeight: '700',
+        fontSize: 13,
     },
     editButton: {
         backgroundColor: colors.secondary,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 8,
     },
     editButtonText: {
         color: colors.white,
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 13,
     },
     deleteButton: {
         backgroundColor: colors.white,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 8,
         borderWidth: 1,
@@ -499,57 +629,23 @@ const styles = StyleSheet.create({
     deleteButtonText: {
         color: colors.danger,
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 13,
     },
-    searchContainer: {
-        flexDirection: 'row',
+    emptyContainer: {
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 10,
-        position: 'relative',
-    },
-    searchInput: {
-        flex: 1,
-        backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 14,
-        paddingRight: 48,
-        fontSize: 16,
-        color: colors.textPrimary,
-        borderWidth: 1,
-        borderColor: colors.border,
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    clearButton: {
-        position: 'absolute',
-        right: 36,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: colors.textLight,
         justifyContent: 'center',
-        alignItems: 'center',
-    },
-    clearButtonText: {
-        color: colors.white,
-        fontSize: 14,
-        fontWeight: '700',
+        paddingVertical: 60,
     },
     emptyText: {
-        textAlign: 'center',
-        color: colors.textSecondary,
         fontSize: 16,
-        marginTop: 40,
+        color: colors.textSecondary,
+        textAlign: 'center',
     },
-    modalContainer: {
+    modalOverlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalContent: {
         backgroundColor: colors.white,
@@ -565,15 +661,6 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         textAlign: 'center',
     },
-    input: {
-        backgroundColor: colors.background,
-        borderRadius: 10,
-        padding: 14,
-        fontSize: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.lightGray,
-    },
     label: {
         fontSize: 14,
         fontWeight: '600',
@@ -581,34 +668,79 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         marginTop: 4,
     },
-    picker: {
-        marginBottom: 16,
-    },
-    pickerOption: {
+    input: {
         backgroundColor: colors.background,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 8,
-        marginRight: 8,
+        borderRadius: 10,
+        padding: 14,
+        fontSize: 16,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: colors.lightGray,
-    },
-    pickerOptionSelected: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-    },
-    pickerOptionText: {
-        fontSize: 14,
-        fontWeight: '600',
+        borderColor: colors.border,
         color: colors.textPrimary,
     },
-    pickerOptionTextSelected: {
+    studentSearchContainer: {
+        marginBottom: 16,
+        position: 'relative',
+    },
+    selectedStudentBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: colors.primary,
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 8,
+    },
+    selectedStudentText: {
         color: colors.white,
+        fontWeight: '600',
+        fontSize: 14,
+        flex: 1,
+    },
+    clearStudentText: {
+        color: colors.white,
+        fontSize: 18,
+        fontWeight: 'bold',
+        paddingHorizontal: 8,
+    },
+    studentDropdown: {
+        backgroundColor: colors.white,
+        borderRadius: 8,
+        marginTop: 4,
+        maxHeight: 200,
+        borderWidth: 1,
+        borderColor: colors.border,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    studentDropdownItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    studentDropdownName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.textPrimary,
+        marginBottom: 2,
+    },
+    studentDropdownReg: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginBottom: 2,
+    },
+    studentDropdownClass: {
+        fontSize: 12,
+        color: colors.textSecondary,
     },
     modalButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginTop: 10,
+        gap: 12,
     },
     modalButton: {
         flex: 1,
@@ -618,19 +750,19 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         backgroundColor: colors.lightGray,
-        marginRight: 8,
     },
     cancelButtonText: {
         color: colors.textPrimary,
         fontWeight: 'bold',
+        fontSize: 16,
     },
     createButton: {
         backgroundColor: colors.primary,
-        marginLeft: 8,
     },
     createButtonText: {
         color: colors.white,
         fontWeight: 'bold',
+        fontSize: 16,
     },
 });
 

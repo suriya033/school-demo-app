@@ -59,12 +59,12 @@ const StaffProfileScreen = ({ route, navigation }) => {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    {staffId && (
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <Text style={styles.backButtonText}>← Back</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                            <Text style={styles.backButtonText}>←</Text>
                         </TouchableOpacity>
-                    )}
-                    <Text style={styles.title}>{staffId ? 'Staff Profile' : 'My Profile'}</Text>
+                        <Text style={styles.title}>{staffId ? 'Staff Profile' : 'My Profile'}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.profileCard}>
@@ -167,11 +167,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: colors.primary,
     },
-    backButton: {
-        marginBottom: 8,
-    },
     backButtonText: {
-        fontSize: 16,
+        fontSize: 24,
         color: colors.primary,
         fontWeight: '600',
     },

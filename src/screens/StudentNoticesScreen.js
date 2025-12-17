@@ -65,10 +65,12 @@ const StudentNoticesScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.headerContainer}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
-                </TouchableOpacity>
-                <Text style={styles.screenTitle}>Notices</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButtonText}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.screenTitle}>Notices</Text>
+                </View>
             </View>
 
             {loading ? (
@@ -139,13 +141,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: {
-        marginRight: 15,
-    },
     backButtonText: {
         fontSize: 24,
         color: colors.primary,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     screenTitle: {
         fontSize: 20,

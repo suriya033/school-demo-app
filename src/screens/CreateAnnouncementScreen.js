@@ -104,10 +104,12 @@ const CreateAnnouncementScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>Create Announcement</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+                        <Text style={styles.backButtonText}>←</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Create Announcement</Text>
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
@@ -212,12 +214,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    backButton: {
-        marginRight: 12,
-    },
     backButtonText: {
-        fontSize: 28,
+        fontSize: 24,
         color: colors.primary,
+        fontWeight: '600',
     },
     title: {
         fontSize: 20,
