@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getFees, createFee, updateFeePayment, deleteFee, getFeeStats } = require('../controllers/feeController');
+const { getFees, createFee, updateFee, updateFeePayment, deleteFee, getFeeStats } = require('../controllers/feeController');
 
 // @route   GET api/fees
 // @desc    Get all fees
@@ -11,6 +11,11 @@ router.get('/', getFees);
 // @desc    Create fee
 // @access  Private (Admin)
 router.post('/', createFee);
+
+// @route   PUT api/fees/:feeId
+// @desc    Update fee
+// @access  Private (Admin)
+router.put('/:feeId', updateFee);
 
 // @route   PUT api/fees/:feeId/payment
 // @desc    Update fee payment

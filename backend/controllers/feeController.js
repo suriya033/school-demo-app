@@ -1,6 +1,8 @@
-const Fee = require('../models/Fee');
+﻿const Fee = require('../models/Fee');
 
+// =======================
 // Get all fees
+// =======================
 exports.getFees = async (req, res) => {
     try {
         const { studentId, status } = req.query;
@@ -10,7 +12,7 @@ exports.getFees = async (req, res) => {
         if (status) query.status = status;
 
         const fees = await Fee.find(query)
-            .populate('student', 'name email')
+            .populate('student', 'name email registerNumber')
             .populate('class', 'name grade section')
             .sort({ dueDate: -1 });
 
@@ -21,7 +23,9 @@ exports.getFees = async (req, res) => {
     }
 };
 
+// =======================
 // Create fee
+// =======================
 exports.createFee = async (req, res) => {
     try {
         const { student, classId, title, amount, dueDate } = req.body;
@@ -38,7 +42,7 @@ exports.createFee = async (req, res) => {
         await fee.save();
 
         const populated = await Fee.findById(fee._id)
-            .populate('student', 'name email')
+            .populate('student', 'name email registerNumber')
             .populate('class', 'name grade section');
 
         res.json(populated);
@@ -48,7 +52,40 @@ exports.createFee = async (req, res) => {
     }
 };
 
+// =======================
+// Update fee
+// =======================
+exports.updateFee = async (req, res) => {
+    try {
+        const { feeId } = req.params;
+        const { student, title, amount, dueDate } = req.body;
+
+        const fee = await Fee.findById(feeId);
+        if (!fee) {
+            return res.status(404).json({ message: 'Fee not found' });
+        }
+
+        if (student) fee.student = student;
+        if (title) fee.title = title;
+        if (amount) fee.amount = amount;
+        if (dueDate) fee.dueDate = dueDate;
+
+        await fee.save();
+
+        const populated = await Fee.findById(fee._id)
+            .populate('student', 'name email registerNumber')
+            .populate('class', 'name grade section');
+
+        res.json(populated);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// =======================
 // Update fee payment
+// =======================
 exports.updateFeePayment = async (req, res) => {
     try {
         const { feeId } = req.params;
@@ -60,6 +97,7 @@ exports.updateFeePayment = async (req, res) => {
         }
 
         fee.status = status;
+
         if (status === 'Paid') {
             fee.paymentDate = new Date();
             fee.paymentMethod = paymentMethod;
@@ -69,7 +107,7 @@ exports.updateFeePayment = async (req, res) => {
         await fee.save();
 
         const populated = await Fee.findById(fee._id)
-            .populate('student', 'name email')
+            .populate('student', 'name email registerNumber')
             .populate('class', 'name grade section');
 
         res.json(populated);
@@ -79,7 +117,9 @@ exports.updateFeePayment = async (req, res) => {
     }
 };
 
+// =======================
 // Delete fee
+// =======================
 exports.deleteFee = async (req, res) => {
     try {
         const { feeId } = req.params;
@@ -91,7 +131,9 @@ exports.deleteFee = async (req, res) => {
     }
 };
 
-// Get fee statistics
+// =======================
+// Fee statistics
+// =======================
 exports.getFeeStats = async (req, res) => {
     try {
         const totalFees = await Fee.countDocuments();

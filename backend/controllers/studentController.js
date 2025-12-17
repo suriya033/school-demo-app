@@ -1,14 +1,24 @@
-const User = require('../models/User');
+﻿const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
 // Get all students
 exports.getStudents = async (req, res) => {
     try {
-        const { classId } = req.query;
+        const { classId, registerNumber, search } = req.query;
         let query = { role: 'Student' };
 
         if (classId) {
             query.studentClass = classId;
+        }
+
+        // Support both 'search' (searches name and registerNumber) and 'registerNumber' (backward compatibility)
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { registerNumber: { $regex: search, $options: 'i' } }
+            ];
+        } else if (registerNumber) {
+            query.registerNumber = { $regex: registerNumber, $options: 'i' };
         }
 
         const students = await User.find(query)
