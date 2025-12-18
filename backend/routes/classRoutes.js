@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { getClasses, createClass, deleteClass, assignSubjectstaff, removeSubjectstaff, addSubject, removeSubject, assignClassStaff } = require('../controllers/classController');
+const { getClasses, getClassById, createClass, deleteClass, assignSubjectstaff, removeSubjectstaff, addSubject, removeSubject, assignClassStaff } = require('../controllers/classController');
 
 // @route   GET api/classes
 // @desc    Get all classes
 // @access  Private (Admin/staff)
 router.get('/', getClasses);
+
+// @route   GET api/classes/:id
+// @desc    Get class by ID
+// @access  Private (Admin/staff)
+router.get('/:id', getClassById);
 
 // @route   POST api/classes
 // @desc    Create a class

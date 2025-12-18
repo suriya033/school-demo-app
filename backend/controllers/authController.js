@@ -55,6 +55,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(`Login attempt for: ${email}`);
 
         // Check if MongoDB is connected
         if (mongoose.connection.readyState !== 1) {
@@ -69,6 +70,7 @@ exports.login = async (req, res) => {
 
             const fallbackUser = fallbackUsers[email];
             if (!fallbackUser || fallbackUser.password !== password) {
+                console.log('Fallback login failed: Invalid credentials');
                 return res.status(400).json({ message: 'Invalid Credentials' });
             }
 
@@ -86,6 +88,7 @@ exports.login = async (req, res) => {
                 { expiresIn: '1d' },
                 (err, token) => {
                     if (err) throw err;
+                    console.log('Fallback login successful');
                     res.json({
                         token,
                         user: {
@@ -103,14 +106,18 @@ exports.login = async (req, res) => {
         // Normal MongoDB authentication
         let user = await User.findOne({ email });
         if (!user) {
+            console.log('Login failed: User not found in MongoDB');
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.log('Login failed: Password incorrect');
             return res.status(400).json({ message: 'Invalid Credentials' });
         }
+
+        console.log('Login successful');
 
         // Create token
         const payload = {
@@ -125,21 +132,37 @@ exports.login = async (req, res) => {
             process.env.JWT_SECRET || 'fallback_secret_key_123',
             { expiresIn: '1d' }, // Longer expiration for mobile app
             (err, token) => {
-                if (err) throw err;
-                res.json({
+                if (err) {
+                    console.error('JWT signing error:', err);
+                    throw err;
+                }
+
+                const responseData = {
                     token,
                     user: {
                         id: user.id,
                         name: user.name,
                         email: user.email,
                         role: user.role,
-                        studentClass: user.studentClass
+                        studentClass: user.studentClass,
+                        staffClass: user.staffClass
                     }
-                });
+                };
+
+                console.log('✅ Sending login response:', JSON.stringify({
+                    ...responseData,
+                    token: token.substring(0, 20) + '...'
+                }, null, 2));
+
+                res.json(responseData);
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('❌ Login error:', err.message);
+        console.error('Stack trace:', err.stack);
+        res.status(500).json({
+            message: 'Server Error',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
     }
 };

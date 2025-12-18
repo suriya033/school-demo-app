@@ -56,16 +56,22 @@ const ClassMessagesScreen = ({ navigation }) => {
             setUser(parsedUser);
             userIdRef.current = parsedUser.id;
 
-            // Get user's full profile to get class ID
-            const token = await AsyncStorage.getItem('token');
-            const response = await axios.get(
-                `${API_URL}/${parsedUser.role === 'Student' ? 'students' : 'staffs'}/${parsedUser.id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            let userClassId = parsedUser.role === 'Student'
+                ? (parsedUser.studentClass?._id || parsedUser.studentClass)
+                : (parsedUser.staffClass?._id || parsedUser.staffClass);
 
-            const userClassId = parsedUser.role === 'Student'
-                ? response.data.studentClass?._id
-                : response.data.staffClass?._id;
+            if (!userClassId) {
+                // If not in stored user object, fetch full profile
+                const token = await AsyncStorage.getItem('token');
+                const response = await axios.get(
+                    `${API_URL}/${parsedUser.role === 'Student' ? 'students' : 'staffs'}/${parsedUser.id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                userClassId = parsedUser.role === 'Student'
+                    ? (response.data.studentClass?._id || response.data.studentClass)
+                    : (response.data.staffClass?._id || response.data.staffClass);
+            }
 
             if (!userClassId) {
                 Alert.alert('Error', 'You are not assigned to any class');

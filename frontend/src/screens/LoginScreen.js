@@ -23,6 +23,10 @@ const LoginScreen = ({ navigation }) => {
             const response = await axios.post(`${API_URL}/auth/login`, {
                 email: email.trim(),
                 password: password.trim(),
+            }, {
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true'
+                }
             });
 
             console.log('Login successful:', response.data.user.role);
@@ -62,6 +66,7 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.content}
             >
                 <View style={styles.header}>
+
                     <Text style={styles.title}>School App</Text>
                     <Text style={styles.subtitle}>Welcome back! Please login to continue.</Text>
                 </View>
@@ -116,8 +121,13 @@ const styles = StyleSheet.create({
         padding: 32,
     },
     header: {
-        marginBottom: 48,
+        marginBottom: 20,
         alignItems: 'center',
+    },
+    logo: {
+        width: 100,
+        height: 100,
+        marginBottom: 20,
     },
     title: {
         fontSize: 36,

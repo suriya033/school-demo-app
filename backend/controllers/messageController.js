@@ -1,6 +1,7 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Class = require('../models/Class');
+const mongoose = require('mongoose');
 
 // Get messages for a class
 exports.getClassMessages = async (req, res) => {
@@ -8,12 +9,32 @@ exports.getClassMessages = async (req, res) => {
         const { classId } = req.params;
         const userId = req.user.id;
 
+        if (!mongoose.Types.ObjectId.isValid(classId)) {
+            return res.status(400).json({ message: 'Invalid class ID' });
+        }
+
         // Verify user has access to this class (either staff or student)
         const user = await User.findById(userId);
-        const isstaff = user.role === 'staff' && user.staffClass?.toString() === classId;
-        const isStudent = user.role === 'Student' && user.studentClass?.toString() === classId;
 
-        if (!isstaff && !isStudent) {
+        let hasAccess = false;
+        if (user.role === 'staff') {
+            // Check if they are the class teacher
+            if (user.staffClass?.toString() === classId) {
+                hasAccess = true;
+            } else {
+                // Check if they are a subject teacher for this class
+                const classDoc = await Class.findById(classId);
+                if (classDoc && classDoc.subjectstaffs.some(ss => ss.staff.toString() === userId)) {
+                    hasAccess = true;
+                }
+            }
+        } else if (user.role === 'Student') {
+            if (user.studentClass?.toString() === classId) {
+                hasAccess = true;
+            }
+        }
+
+        if (!hasAccess) {
             return res.status(403).json({ message: 'Access denied to this class' });
         }
 
@@ -36,12 +57,30 @@ exports.sendMessage = async (req, res) => {
         const { content, isPoll, pollQuestion, pollOptions } = req.body;
         const userId = req.user.id;
 
+        if (!mongoose.Types.ObjectId.isValid(classId)) {
+            return res.status(400).json({ message: 'Invalid class ID' });
+        }
+
         // Verify user has access to this class
         const user = await User.findById(userId);
-        const isstaff = user.role === 'staff' && user.staffClass?.toString() === classId;
-        const isStudent = user.role === 'Student' && user.studentClass?.toString() === classId;
 
-        if (!isstaff && !isStudent) {
+        let hasAccess = false;
+        if (user.role === 'staff') {
+            if (user.staffClass?.toString() === classId) {
+                hasAccess = true;
+            } else {
+                const classDoc = await Class.findById(classId);
+                if (classDoc && classDoc.subjectstaffs.some(ss => ss.staff.toString() === userId)) {
+                    hasAccess = true;
+                }
+            }
+        } else if (user.role === 'Student') {
+            if (user.studentClass?.toString() === classId) {
+                hasAccess = true;
+            }
+        }
+
+        if (!hasAccess) {
             return res.status(403).json({ message: 'Access denied to this class' });
         }
 
@@ -163,7 +202,17 @@ exports.deleteMessage = async (req, res) => {
 
         // Allow deletion if user is sender OR user is a staff of that class
         const isSender = message.sender.toString() === userId;
-        const isstaff = user.role === 'staff' && user.staffClass?.toString() === message.class.toString();
+        let isstaff = false;
+        if (user.role === 'staff') {
+            if (user.staffClass?.toString() === message.class.toString()) {
+                isstaff = true;
+            } else {
+                const classDoc = await Class.findById(message.class);
+                if (classDoc && classDoc.subjectstaffs.some(ss => ss.staff.toString() === userId)) {
+                    isstaff = true;
+                }
+            }
+        }
 
         if (!isSender && !isstaff) {
             return res.status(403).json({ message: 'Not authorized to delete this message' });

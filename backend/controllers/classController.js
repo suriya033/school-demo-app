@@ -1,4 +1,5 @@
 const Class = require('../models/Class');
+const User = require('../models/User');
 
 // Get all classes
 exports.getClasses = async (req, res) => {
@@ -26,6 +27,26 @@ exports.getClasses = async (req, res) => {
     }
 };
 
+// Get class by ID
+exports.getClassById = async (req, res) => {
+    try {
+        const classDoc = await Class.findById(req.params.id)
+            .populate('classstaff', 'name email')
+            .populate('subjects', 'name code')
+            .populate('subjectstaffs.staff', 'name email')
+            .populate('subjectstaffs.subject', 'name code')
+            .populate('students', 'name email registerNumber');
+
+        if (!classDoc) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+        res.json(classDoc);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 // Create a class
 exports.createClass = async (req, res) => {
     try {
@@ -41,6 +62,26 @@ exports.createClass = async (req, res) => {
         });
 
         const savedClass = await newClass.save();
+
+        // Update User model if classstaff is provided
+        if (classstaff) {
+            await User.findByIdAndUpdate(classstaff, { staffClass: savedClass._id });
+        }
+
+        // Update User model for subjectstaffs
+        if (subjectstaffs && subjectstaffs.length > 0) {
+            for (const ss of subjectstaffs) {
+                await User.findByIdAndUpdate(ss.staff, {
+                    $addToSet: {
+                        subjectClassAssignments: {
+                            subject: ss.subject,
+                            class: savedClass._id
+                        }
+                    }
+                });
+            }
+        }
+
         const populatedClass = await Class.findById(savedClass._id)
             .populate('classstaff', 'name email')
             .populate('subjects', 'name code')
@@ -82,6 +123,8 @@ exports.assignSubjectstaff = async (req, res) => {
             st => st.subject.toString() === subjectId
         );
 
+        const oldStaffId = existingIndex >= 0 ? classDoc.subjectstaffs[existingIndex].staff : null;
+
         if (existingIndex >= 0) {
             // Update existing assignment
             classDoc.subjectstaffs[existingIndex].staff = staffId;
@@ -91,6 +134,28 @@ exports.assignSubjectstaff = async (req, res) => {
         }
 
         await classDoc.save();
+
+        // Update User model for new staff
+        await User.findByIdAndUpdate(staffId, {
+            $addToSet: {
+                subjectClassAssignments: {
+                    subject: subjectId,
+                    class: classId
+                }
+            }
+        });
+
+        // Remove from old staff if changed
+        if (oldStaffId && oldStaffId.toString() !== staffId.toString()) {
+            await User.findByIdAndUpdate(oldStaffId, {
+                $pull: {
+                    subjectClassAssignments: {
+                        subject: subjectId,
+                        class: classId
+                    }
+                }
+            });
+        }
 
         const populatedClass = await Class.findById(classId)
             .populate('classstaff', 'name email')
@@ -212,8 +277,20 @@ exports.assignClassStaff = async (req, res) => {
             return res.status(404).json({ message: 'Class not found' });
         }
 
+        const oldStaffId = classDoc.classstaff;
+
         classDoc.classstaff = staffId;
         await classDoc.save();
+
+        // Update new staff
+        if (staffId) {
+            await User.findByIdAndUpdate(staffId, { staffClass: classId });
+        }
+
+        // Clear old staff
+        if (oldStaffId && oldStaffId.toString() !== staffId?.toString()) {
+            await User.findByIdAndUpdate(oldStaffId, { staffClass: null });
+        }
 
         const populatedClass = await Class.findById(classId)
             .populate('classstaff', 'name email')

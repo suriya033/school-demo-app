@@ -80,16 +80,20 @@ const StaffDashboardScreen = ({ navigation }) => {
             }
 
             // Calculate total unique students across all staff's classes (for stats)
-            for (const classItem of staffClasses) {
-                if (classItem._id !== myClass?._id) {
-                    const studentsRes = await axios.get(`${API_URL}/students?classId=${classItem._id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    studentsRes.data.forEach(student => {
-                        uniqueStudentIds.add(student._id);
-                    });
-                }
-            }
+            const otherClasses = staffClasses.filter(c => c._id !== myClass?._id);
+            const studentRequests = otherClasses.map(classItem => 
+                axios.get(`${API_URL}/students?classId=${classItem._id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }).catch(err => {
+                    console.error(`Failed to fetch students for class ${classItem._id}:`, err.message);
+                    return { data: [] };
+                })
+            );
+
+            const studentResults = await Promise.all(studentRequests);
+            studentResults.forEach(res => {
+                res.data.forEach(student => uniqueStudentIds.add(student._id));
+            });
 
             const homeworkRes = await axios.get(`${API_URL}/homework`, {
                 headers: { Authorization: `Bearer ${token}` }

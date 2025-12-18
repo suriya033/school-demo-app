@@ -45,7 +45,12 @@ const StudentDashboardScreen = ({ navigation }) => {
             setNotices(noticesResponse.data);
 
             // Fetch homework (if student has a class)
-            const homeworkResponse = await axios.get(`${API_URL}/homework`, {
+            const classId = user?.studentClass?._id || user?.studentClass;
+            const homeworkUrl = classId
+                ? `${API_URL}/homework?classId=${classId}`
+                : `${API_URL}/homework`;
+
+            const homeworkResponse = await axios.get(homeworkUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setHomework(homeworkResponse.data);

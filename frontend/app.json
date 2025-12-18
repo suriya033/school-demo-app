@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "school app",
+    "slug": "school app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,6 +21,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
+    },
+    "updates": {
+      "checkAutomatically": "NEVER",
+      "enabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"

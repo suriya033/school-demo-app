@@ -45,13 +45,26 @@ const SubjectAssignmentScreen = ({ navigation }) => {
             });
 
             const myClass = staffRes.data.staffClass;
-            if (!myClass) {
+            const myClassId = myClass?._id || myClass;
+
+            if (!myClassId) {
                 Alert.alert('Error', 'You are not assigned as a class teacher');
                 navigation.goBack();
                 return;
             }
 
-            setClassDetails(myClass);
+            // Fetch full class details to get subjectstaffs
+            const classRes = await axios.get(`${API_URL}/classes/${myClassId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!classRes.data) {
+                Alert.alert('Error', 'Class details not found');
+                navigation.goBack();
+                return;
+            }
+
+            setClassDetails(classRes.data);
 
             // Fetch all subjects
             const subjectsRes = await axios.get(`${API_URL}/subjects`, {
@@ -103,9 +116,13 @@ const SubjectAssignmentScreen = ({ navigation }) => {
                 staff: selectedStaff._id
             });
 
-            await axios.put(
-                `${API_URL}/classes/${classDetails._id}`,
-                { subjectstaffs: filtered },
+            // Call the correct endpoint to assign a single staff to a subject
+            await axios.post(
+                `${API_URL}/classes/${classDetails._id}/assign-subject-staff`,
+                {
+                    subjectId: selectedSubject._id,
+                    staffId: selectedStaff._id
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 

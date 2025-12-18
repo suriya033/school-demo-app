@@ -15,11 +15,12 @@ const FeeManagementScreen = ({ navigation }) => {
     const [amount, setAmount] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [selectedStudent, setSelectedStudent] = useState('');
-    const [selectedClass, setSelectedClass] = useState('');
+    // const [selectedClass, setSelectedClass] = useState(''); // Removed manual class selection
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [editMode, setEditMode] = useState(false);
     const [selectedFee, setSelectedFee] = useState(null);
+    const [studentSearch, setStudentSearch] = useState('');
 
     // Filter fees based on search query
     const filteredFees = fees.filter(fee => {
@@ -34,7 +35,7 @@ const FeeManagementScreen = ({ navigation }) => {
     useEffect(() => {
         fetchFees();
         fetchStudents();
-        fetchClasses();
+        // fetchClasses(); // No longer needed for manual selection
     }, []);
 
     const fetchFees = async () => {
@@ -61,21 +62,18 @@ const FeeManagementScreen = ({ navigation }) => {
         }
     };
 
-    const fetchClasses = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/classes`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setClasses(response.data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
     const handleCreateFee = async () => {
-        if (!title || !amount || !selectedStudent || !selectedClass || !dueDate) {
+        if (!title || !amount || !selectedStudent || !dueDate) {
             Alert.alert('Error', 'Please fill all fields');
+            return;
+        }
+
+        // Derive class from selected student
+        const studentObj = students.find(s => s._id === selectedStudent);
+        const classId = studentObj?.studentClass?._id || studentObj?.studentClass;
+
+        if (!classId) {
+            Alert.alert('Error', 'Selected student is not assigned to any class');
             return;
         }
 
@@ -87,7 +85,7 @@ const FeeManagementScreen = ({ navigation }) => {
                 // Update existing fee
                 await axios.put(`${API_URL}/fees/${selectedFee._id}`, {
                     student: selectedStudent,
-                    classId: selectedClass,
+                    classId: classId,
                     title,
                     amount: parseFloat(amount),
                     dueDate: new Date(dueDate),
@@ -99,7 +97,7 @@ const FeeManagementScreen = ({ navigation }) => {
                 // Create new fee
                 await axios.post(`${API_URL}/fees`, {
                     student: selectedStudent,
-                    classId: selectedClass,
+                    classId: classId,
                     title,
                     amount: parseFloat(amount),
                     dueDate: new Date(dueDate),
@@ -173,7 +171,7 @@ const FeeManagementScreen = ({ navigation }) => {
         setAmount(fee.amount.toString());
         setDueDate(new Date(fee.dueDate).toISOString().split('T')[0]);
         setSelectedStudent(fee.student._id);
-        setSelectedClass(fee.classId._id || fee.classId);
+        // setSelectedClass(fee.classId._id || fee.classId); // Not needed
         setModalVisible(true);
     };
 
@@ -182,9 +180,10 @@ const FeeManagementScreen = ({ navigation }) => {
         setAmount('');
         setDueDate('');
         setSelectedStudent('');
-        setSelectedClass('');
+        // setSelectedClass('');
         setEditMode(false);
         setSelectedFee(null);
+        setStudentSearch('');
     };
 
     const renderFeeItem = ({ item }) => (
@@ -304,45 +303,32 @@ const FeeManagementScreen = ({ navigation }) => {
                             />
 
                             <Text style={styles.label}>Select Student</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Search student..."
+                                value={studentSearch}
+                                onChangeText={setStudentSearch}
+                            />
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picker}>
-                                {students.map((student) => (
-                                    <TouchableOpacity
-                                        key={student._id}
-                                        style={[
-                                            styles.pickerOption,
-                                            selectedStudent === student._id && styles.pickerOptionSelected
-                                        ]}
-                                        onPress={() => setSelectedStudent(student._id)}
-                                    >
-                                        <Text style={[
-                                            styles.pickerOptionText,
-                                            selectedStudent === student._id && styles.pickerOptionTextSelected
-                                        ]}>
-                                            {student.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-
-                            <Text style={styles.label}>Select Class</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.picker}>
-                                {classes.map((cls) => (
-                                    <TouchableOpacity
-                                        key={cls._id}
-                                        style={[
-                                            styles.pickerOption,
-                                            selectedClass === cls._id && styles.pickerOptionSelected
-                                        ]}
-                                        onPress={() => setSelectedClass(cls._id)}
-                                    >
-                                        <Text style={[
-                                            styles.pickerOptionText,
-                                            selectedClass === cls._id && styles.pickerOptionTextSelected
-                                        ]}>
-                                            {cls.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                                {students
+                                    .filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()))
+                                    .map((student) => (
+                                        <TouchableOpacity
+                                            key={student._id}
+                                            style={[
+                                                styles.pickerOption,
+                                                selectedStudent === student._id && styles.pickerOptionSelected
+                                            ]}
+                                            onPress={() => setSelectedStudent(student._id)}
+                                        >
+                                            <Text style={[
+                                                styles.pickerOptionText,
+                                                selectedStudent === student._id && styles.pickerOptionTextSelected
+                                            ]}>
+                                                {student.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
                             </ScrollView>
 
                             <View style={styles.modalButtons}>
@@ -384,6 +370,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
+        paddingTop: 10, // Reduced top padding
         paddingBottom: 10,
     },
     title: {

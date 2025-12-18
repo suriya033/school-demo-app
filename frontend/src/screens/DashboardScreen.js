@@ -30,20 +30,31 @@ const DashboardScreen = ({ navigation }) => {
     const fetchStats = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
+            const headers = { Authorization: `Bearer ${token}` };
 
-            const [classesRes, studentsRes, staffsRes] = await Promise.all([
-                axios.get(`${API_URL}/classes`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${API_URL}/students`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${API_URL}/staffs`, { headers: { Authorization: `Bearer ${token}` } }),
+            const fetchItem = async (url) => {
+                try {
+                    const res = await axios.get(`${API_URL}${url}`, { headers });
+                    return res.data;
+                } catch (err) {
+                    console.error(`Error fetching ${url}:`, err.message);
+                    return [];
+                }
+            };
+
+            const [classes, students, staffs] = await Promise.all([
+                fetchItem('/classes'),
+                fetchItem('/students'),
+                fetchItem('/staffs'),
             ]);
 
             setStats({
-                totalClasses: classesRes.data.length,
-                totalStudents: studentsRes.data.length,
-                totalstaffs: staffsRes.data.length,
+                totalClasses: Array.isArray(classes) ? classes.length : 0,
+                totalStudents: Array.isArray(students) ? students.length : 0,
+                totalstaffs: Array.isArray(staffs) ? staffs.length : 0,
             });
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            console.error('Error in fetchStats:', error);
         } finally {
             setLoading(false);
         }
@@ -58,7 +69,7 @@ const DashboardScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Dashboard</Text>
+                <Text style={styles.title}>Dashboard </Text>
                 {user && (
                     <View>
                         <Text style={styles.welcome}>Welcome, {user.name}</Text>
@@ -199,7 +210,7 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 24,
-        paddingTop: 4,
+        paddingTop: 0,
         paddingBottom: 20,
         backgroundColor: colors.primary,
     },

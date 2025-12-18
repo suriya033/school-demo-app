@@ -1,0 +1,31 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    background: var(--background);
+}
+
+.main {
+    flex: 1;
+    margin-left: 280px;
+    padding: 2rem;
+    position: relative;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+.content {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.loading {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}

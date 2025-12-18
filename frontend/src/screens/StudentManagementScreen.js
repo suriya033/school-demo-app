@@ -573,6 +573,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 24,
+        paddingTop: 10, // Reduced top padding
         paddingBottom: 16,
         backgroundColor: colors.white,
         borderBottomWidth: 1,

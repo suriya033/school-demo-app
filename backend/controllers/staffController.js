@@ -88,6 +88,25 @@ exports.createstaff = async (req, res) => {
 
         await staff.save();
 
+        // Update Class model if staffClass is provided
+        if (staffClass) {
+            await Class.findByIdAndUpdate(staffClass, { classstaff: staff._id });
+        }
+
+        // Update Class model for subjectClassAssignments
+        if (subjectClassAssignments && subjectClassAssignments.length > 0) {
+            for (const assignment of subjectClassAssignments) {
+                await Class.findByIdAndUpdate(assignment.class, {
+                    $addToSet: {
+                        subjectstaffs: {
+                            subject: assignment.subject,
+                            staff: staff._id
+                        }
+                    }
+                });
+            }
+        }
+
         const populatedstaff = await User.findById(staff._id)
             .populate('staffSubjects', 'name code')
             .populate('staffClass', 'name grade section')
@@ -132,12 +151,28 @@ exports.updatestaff = async (req, res) => {
             updateData.profilePicture = `uploads/${req.file.path.replace(/\\/g, "/").split('uploads/').pop()}`;
         }
 
+        const oldStaff = await User.findById(staffId);
+        const oldClassId = oldStaff.staffClass;
+
         const updatedstaff = await User.findByIdAndUpdate(
             staffId,
             updateData,
             { new: true }
         ).populate('staffSubjects', 'name code')
             .populate('staffClass', 'name grade section');
+
+        // Sync with Class model
+        if (staffClass && staffClass.toString() !== oldClassId?.toString()) {
+            // New class assignment
+            await Class.findByIdAndUpdate(staffClass, { classstaff: staffId });
+            // Clear old class if it existed
+            if (oldClassId) {
+                await Class.findByIdAndUpdate(oldClassId, { classstaff: null });
+            }
+        } else if (!staffClass && oldClassId) {
+            // Removed class assignment
+            await Class.findByIdAndUpdate(oldClassId, { classstaff: null });
+        }
 
         res.json(updatedstaff);
     } catch (err) {
